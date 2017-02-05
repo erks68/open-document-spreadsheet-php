@@ -6,6 +6,8 @@
  *
  * Initially based on https://sourceforge.net/projects/ods-php/
  * Copyright (C) 2008 Juan Lao Tebar (juanlao@eyeos.org) and Jose Carlos Norte (jose@eyeos.org)
+ * 
+ * Column styles added by Erkki Solvak <erkki.solvak@gmail.com>
  */
 class OpenDocument_Spreadsheet_Writer {
 	
@@ -13,24 +15,44 @@ class OpenDocument_Spreadsheet_Writer {
 	protected $hndContent;
 	protected $strContentFile;
 	protected $arrRow;
-	
+        protected $styles = [];
 	
 	public function __construct($strFile) {
 	    $this->strFile = $strFile;
 	    $this->strContentFile = uniqid(dirname($this->strFile) . '/' . basename($this->strFile) . '_');
 	}
-	
-	public function startDoc() {
+        
+	public function addColumnStyle($styleName, $width){
+            $style = '<style:style style:name="'.$styleName.'" style:family="table-column">
+                <style:table-column-properties fo:break-before="auto" style:column-width="'.$width.'pt"/>
+            </style:style>';
+            $this->styles[] = $style;
+        }
+
+        public function startDoc() {
 	    $this->hndContent = fopen($this->strContentFile, 'w');
 		fwrite($this->hndContent, '<?xml version="1.0" encoding="UTF-8"?><office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:xforms="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" office:version="1.0">');
 		fwrite($this->hndContent, '<office:scripts/>');
 		fwrite($this->hndContent, '<office:font-face-decls/>');
-		fwrite($this->hndContent, '<office:automatic-styles />');
+                if(empty($this->styles)){
+                    fwrite($this->hndContent, '<office:automatic-styles />');
+                } else {
+                    fwrite($this->hndContent, '<office:automatic-styles>');
+                    foreach ($this->styles as $style) {
+                        fwrite($this->hndContent, $style);
+                    }
+                    fwrite($this->hndContent, '</office:automatic-styles>');
+                }
+		
 		fwrite($this->hndContent, '<office:body>');
-		fwrite($this->hndContent, '<office:spreadsheet>');
-	}
-	
-	public function startSheet($tableIndex = 0) {
+                fwrite($this->hndContent, '<office:spreadsheet>');
+        }
+        
+        public function addColumn($styleName) {
+            fwrite($this->hndContent, '<table:table-column table:style-name="' . $styleName . '" table:default-cell-style-name="Default"/>');
+        }
+
+        public function startSheet($tableIndex = 0) {
 	    fwrite($this->hndContent, '<table:table table:name="' . $tableIndex . '" table:print="false">');
 	}
 	
@@ -433,8 +455,3 @@ class OpenDocument_Spreadsheet_Writer {
     	unlink($this->strContentFile);
     }
 }
-
-
-
-
-?>
